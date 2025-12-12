@@ -59,11 +59,34 @@ jobs:
           org.gradle.parallel=false
           org.gradle.caching=false
           org.gradle.configureondemand=false
+          org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError
           EOL
+
+      # Clean Gradle cache to prevent JAR creation conflicts
+      - name: Clean Gradle cache
+        run: |
+          rm -rf ~/.gradle/caches/
+          mkdir -p ~/.gradle/caches
+          # Ensure proper permissions to prevent race conditions
+          chmod -R 755 ~/.gradle
 
       # Make Gradle wrapper executable
       - name: Make Gradle executable
         run: chmod +x app/android/gradlew
+      
+      # Create project-level Gradle properties
+      # Note: Intentionally duplicates global settings for defense-in-depth
+      - name: Create project Gradle properties
+        run: |
+          cat > app/android/gradle.properties <<EOL
+          org.gradle.daemon=false
+          org.gradle.parallel=false
+          org.gradle.caching=false
+          org.gradle.configureondemand=false
+          org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError
+          android.useAndroidX=true
+          android.enableJetifier=true
+          EOL
 
       # Build Release APK with retries
       - name: Build Release APK
@@ -74,7 +97,7 @@ jobs:
           retry_on: error
           command: |
             cd app/android
-            ./gradlew clean assembleRelease --no-daemon --stacktrace
+            ./gradlew clean assembleRelease --no-daemon --no-parallel --no-build-cache --stacktrace --info
 
       # Upload APK Artifact
       - name: Upload APK Artifact
