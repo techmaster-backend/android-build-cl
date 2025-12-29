@@ -1,48 +1,73 @@
-name: Build Android APK
+name: Build Android Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      build_id:
-        description: "Folder name inside /builds containing the app source"
-        required: true
+  push:
+    branches: [ "main" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    # Added permissions block to allow release creation
+    permissions:
+      contents: write
+      
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout Source
+        uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
-      - name: Install Java JDK
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: 'zulu'
+          java-version: '21'
 
-      - name: Install Android SDK
-        uses: android-actions/setup-android@v3
-
-      # ✅ Fix for Windows developers — give executable permission on Linux runner
-      - name: Make prepare script executable
-        run: chmod +x ./scripts/prepare-capacitor.sh
-
-      - name: Prepare Capacitor Project
-        run: ./scripts/prepare-capacitor.sh ${{ github.event.inputs.build_id }}
-
-      - name: Build Android Release APK
+      - name: Install Dependencies
         run: |
-          cd app/android
-          ./gradlew assembleRelease
+          npm install
+          npm install @capacitor/core @capacitor/cli @capacitor/android typescript
 
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v3
+      - name: Capacitor Sync
+        run: |
+          npx cap add android
+          npx cap sync android
+
+      - name: Fix Duplicate Classes
+        run: |
+          echo "android.useAndroidX=true" >> android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
+          
+          sed -i '/dependencies {/i \
+          configurations.all {\
+              resolutionStrategy {\
+                  force "org.jetbrains.kotlin:kotlin-stdlib:1.9.23"\
+                  force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.23"\
+              }\
+          }' android/app/build.gradle
+
+      - name: Build APK (Debug)
+        run: cd android && ./gradlew assembleDebug --stacktrace --info
+
+      - name: Build AAB (Release)
+        run: cd android && ./gradlew bundleRelease --stacktrace --info
+
+      - name: Get Short Commit Hash
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
         with:
-          name: apk
-          path: app/android/app/build/outputs/apk/release/*.apk
+          tag_name: ${{ steps.vars.outputs.sha_short }}
+          name: Release ${{ steps.vars.outputs.sha_short }}
+          draft: false
+          prerelease: false
+          files: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/bundle/release/app-release.aab
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
