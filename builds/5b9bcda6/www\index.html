@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Endless Gesture Platformer</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="loading-screen">
+    <div class="animate-bounce mb-4 text-4xl">🏃‍♂️</div>
+    <h1 class="text-2xl font-black tracking-tighter text-emerald-400 uppercase">Endless Strike</h1>
+    <p class="text-slate-400 text-sm mt-2">Warming up AI Vision...</p>
+</div>
+
+<div id="ui" class="absolute top-8 left-8 z-50 pointer-events-none flex flex-col gap-4">
+    <div class="bg-slate-900/80 backdrop-blur-md p-6 rounded-2xl border border-white/10 w-64 shadow-2xl">
+        <div class="flex justify-between items-end mb-1">
+            <span class="text-xs text-emerald-400 font-mono uppercase tracking-widest">Coins</span>
+            <span id="score-val" class="text-4xl font-black">0</span>
+        </div>
+        <div class="flex justify-between items-end border-t border-white/5 pt-2">
+            <span class="text-xs text-sky-400 font-mono uppercase tracking-widest">Distance</span>
+            <span id="dist-val" class="text-xl font-bold">0m</span>
+        </div>
+        <div class="mt-6 flex flex-col gap-2">
+            <div id="badge-left" class="control-badge inactive-ctrl text-center">Move Left</div>
+            <div id="badge-right" class="control-badge inactive-ctrl text-center">Move Right</div>
+            <div id="badge-jump" class="control-badge inactive-ctrl text-center">Jump (Point Up)</div>
+            <div id="badge-stop" class="control-badge inactive-ctrl text-center">Stop (Fist)</div>
+        </div>
+    </div>
+</div>
+
+<video id="input-video" class="hidden" playsinline></video>
+
+<div id="video-container">
+    <canvas id="hand-canvas"></canvas>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
